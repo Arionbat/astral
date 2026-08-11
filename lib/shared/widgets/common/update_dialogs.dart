@@ -5,6 +5,36 @@ import 'package:flutter/material.dart';
 import 'package:open_file/open_file.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+/// 更新流程中的即时忙碌提示（检查更新、测速等）
+class UpdateBusyDialog extends StatelessWidget {
+  final String title;
+  final String message;
+
+  const UpdateBusyDialog({
+    super.key,
+    required this.title,
+    required this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(title),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const LinearProgressIndicator(),
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(message),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// 更新对话框
 class UpdateDialog extends StatelessWidget {
   final String version;
@@ -92,18 +122,20 @@ class UpdateDialog extends StatelessWidget {
   }
 }
 
-/// 下载进度对话框
+/// 下载进度对话框（含准备阶段状态文案）
 class DownloadProgressDialog extends StatefulWidget {
+  /// [onStatus] 更新当前步骤说明；[onProgress] 传 `null` 表示不确定进度。
   final Future<String?> Function(
-    void Function(double) onProgress,
+    void Function(String message) onStatus,
+    void Function(double? progress) onProgress,
     bool Function() isCancelled,
   )
-  onDownload;
+  onWork;
   final String fileName;
 
   const DownloadProgressDialog({
     super.key,
-    required this.onDownload,
+    required this.onWork,
     required this.fileName,
   });
 
@@ -112,8 +144,9 @@ class DownloadProgressDialog extends StatefulWidget {
 }
 
 class _DownloadProgressDialogState extends State<DownloadProgressDialog> {
-  double _progress = 0.0;
-  bool _isDownloading = true;
+  double? _progress;
+  String _status = '正在准备下载…';
+  bool _isWorking = true;
   bool _isCancelled = false;
   String? _filePath;
   String? _error;
@@ -127,26 +160,32 @@ class _DownloadProgressDialogState extends State<DownloadProgressDialog> {
   void _cancelDownload() {
     setState(() {
       _isCancelled = true;
-      _isDownloading = false;
+      _isWorking = false;
       _error = '下载已取消';
     });
   }
 
   Future<void> _startDownload() async {
     try {
-      final filePath = await widget.onDownload((progress) {
-        if (mounted && !_isCancelled) {
-          setState(() {
-            _progress = progress;
-          });
-        }
-      }, () => _isCancelled);
+      final filePath = await widget.onWork(
+        (message) {
+          if (mounted && !_isCancelled) {
+            setState(() => _status = message);
+          }
+        },
+        (progress) {
+          if (mounted && !_isCancelled) {
+            setState(() => _progress = progress);
+          }
+        },
+        () => _isCancelled,
+      );
 
       if (_isCancelled) return;
 
       if (mounted) {
         setState(() {
-          _isDownloading = false;
+          _isWorking = false;
           _filePath = filePath;
           if (filePath == null) {
             _error = '下载失败：无法保存文件';
@@ -158,7 +197,7 @@ class _DownloadProgressDialogState extends State<DownloadProgressDialog> {
 
       if (mounted) {
         setState(() {
-          _isDownloading = false;
+          _isWorking = false;
           _error = '下载失败: ${e.toString()}';
         });
       }
@@ -169,19 +208,26 @@ class _DownloadProgressDialogState extends State<DownloadProgressDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text(
-        _isDownloading ? '正在下载更新' : (_error != null ? '下载失败' : '下载完成'),
+        _isWorking ? '正在下载更新' : (_error != null ? '下载失败' : '下载完成'),
       ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_isDownloading) ...[
+          if (_isWorking) ...[
             LinearProgressIndicator(value: _progress),
             const SizedBox(height: 16),
-            Text('下载进度: ${(_progress * 100).toStringAsFixed(1)}%'),
+            Text(_status),
+            if (_progress != null) ...[
+              const SizedBox(height: 8),
+              Text('下载进度: ${(_progress! * 100).toStringAsFixed(1)}%'),
+            ],
           ] else if (_error != null) ...[
             Text(_error!),
           ] else ...[
-            const Icon(Icons.check_circle, color: Colors.green, size: 48),
+            const Center(
+              child: Icon(Icons.check_circle, color: Colors.green, size: 48),
+            ),
             const SizedBox(height: 16),
             Text('文件已下载到: ${widget.fileName}'),
             const SizedBox(height: 8),
@@ -190,10 +236,10 @@ class _DownloadProgressDialogState extends State<DownloadProgressDialog> {
         ],
       ),
       actions: [
-        if (_isDownloading) ...[
+        if (_isWorking) ...[
           TextButton(onPressed: _cancelDownload, child: const Text('取消下载')),
         ],
-        if (!_isDownloading) ...[
+        if (!_isWorking) ...[
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('取消'),
@@ -230,6 +276,10 @@ class _DownloadProgressDialogState extends State<DownloadProgressDialog> {
       } else {
         await OpenFile.open(filePath);
       }
+
+      // 安装器拉起后退出当前进程，避免旧版本残留造成多窗口/覆盖安装异常。
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      exit(0);
     } catch (e) {
       if (mounted) {
         AppSnackBars.error(

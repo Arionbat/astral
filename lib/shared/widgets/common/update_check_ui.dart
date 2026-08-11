@@ -18,11 +18,33 @@ class UpdateCheckUi {
     bool forceShowDownload = false,
     bool showFailureMessage = true,
   }) async {
+    // 用户主动点击时立刻给进度反馈；静默自动检查不挡启动界面
+    final showBusy = showNoUpdateMessage || forceShowDownload;
+    BuildContext? busyContext;
+
+    if (showBusy && context.mounted) {
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          busyContext = dialogContext;
+          return const UpdateBusyDialog(
+            title: '检查更新',
+            message: '正在从 GitHub 获取版本信息…',
+          );
+        },
+      );
+    }
+
     final result = await checker.check(
       forceShowDownload: forceShowDownload,
       showNoUpdateMessage: showNoUpdateMessage,
       showFailureMessage: showFailureMessage,
     );
+
+    if (busyContext != null && busyContext!.mounted) {
+      Navigator.of(busyContext!).pop();
+    }
 
     if (!context.mounted || result == null) return;
     _showDialog(context, result);

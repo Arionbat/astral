@@ -32,30 +32,17 @@ class UpdateDownloadUi {
       return;
     }
 
-    final acceleratedUrl = await downloader.resolveAcceleratedUrl(downloadUrl);
-    if (!context.mounted) return;
-
     final fileName = downloader.getPlatformFileName();
     if (fileName.isEmpty) {
       AppSnackBars.error(context, '下载失败', '当前平台暂不支持内置下载安装');
       return;
     }
 
-    if (!context.mounted) return;
-    showDialog(
+    await _showDownloadDialog(
       context: context,
-      barrierDismissible: false,
-      builder:
-          (context) => DownloadProgressDialog(
-            onDownload:
-                (onProgress, isCancelled) => downloader.downloadFile(
-                  acceleratedUrl,
-                  fileName,
-                  onProgress,
-                  isCancelled,
-                ),
-            fileName: fileName,
-          ),
+      downloader: downloader,
+      downloadUrl: downloadUrl,
+      fileName: fileName,
     );
   }
 
@@ -73,22 +60,48 @@ class UpdateDownloadUi {
       return;
     }
 
-    final acceleratedUrl = await downloader.resolveAcceleratedUrl(downloadUrl);
+    await _showDownloadDialog(
+      context: context,
+      downloader: downloader,
+      downloadUrl: downloadUrl,
+      fileName: fileName,
+    );
+  }
+
+  /// 立刻弹出进度框，测速/选线路也在框内展示，避免「点了没反应」。
+  static Future<void> _showDownloadDialog({
+    required BuildContext context,
+    required UpdateDownloader downloader,
+    required String downloadUrl,
+    required String fileName,
+  }) async {
     if (!context.mounted) return;
 
-    showDialog(
+    await showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder:
           (context) => DownloadProgressDialog(
-            onDownload:
-                (onProgress, isCancelled) => downloader.downloadFile(
-                  acceleratedUrl,
-                  fileName,
-                  onProgress,
-                  isCancelled,
-                ),
             fileName: fileName,
+            onWork: (onStatus, onProgress, isCancelled) async {
+              onStatus('正在选择下载线路…');
+              onProgress(null);
+
+              final acceleratedUrl = await downloader.resolveAcceleratedUrl(
+                downloadUrl,
+              );
+              if (isCancelled()) return null;
+
+              onStatus('正在下载更新…');
+              onProgress(0);
+
+              return downloader.downloadFile(
+                acceleratedUrl,
+                fileName,
+                (progress) => onProgress(progress),
+                isCancelled,
+              );
+            },
           ),
     );
   }
