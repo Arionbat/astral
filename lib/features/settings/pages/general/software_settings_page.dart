@@ -4,6 +4,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:astral/generated/locale_keys.g.dart';
 import 'package:astral/core/services/service_manager.dart';
+import 'package:astral/core/states/display_state.dart';
 import 'package:astral/core/ui/app_snack_bars.dart';
 import 'package:astral/core/ui/base_settings_page.dart';
 import 'package:signals_flutter/signals_flutter.dart';
@@ -226,13 +227,36 @@ class _SoftwareSettingsPageState
                     ServiceManager().appSettings.updateCloseMinimize(value);
                   },
                 ),
-              SwitchListTile(
+              ListTile(
                 title: Text(LocaleKeys.player_list_card.tr()),
                 subtitle: Text(LocaleKeys.player_list_card_desc.tr()),
-                value: ServiceManager().displayState.userListSimple.watch(context),
-                onChanged: (value) {
-                  ServiceManager().appSettings.setUserListSimple(value);
-                },
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: SegmentedButton<UserListStyle>(
+                  segments: const [
+                    ButtonSegment(
+                      value: UserListStyle.simple,
+                      label: Text('简约'),
+                    ),
+                    ButtonSegment(
+                      value: UserListStyle.detailed,
+                      label: Text('详细'),
+                    ),
+                    ButtonSegment(
+                      value: UserListStyle.list,
+                      label: Text('列表'),
+                    ),
+                  ],
+                  selected: {
+                    ServiceManager().displayState.userListStyle.watch(context),
+                  },
+                  onSelectionChanged: (selected) {
+                    ServiceManager().appSettings.setUserListStyle(
+                      selected.first,
+                    );
+                  },
+                ),
               ),
               SwitchListTile(
                 title: const Text('减少动画更新'),

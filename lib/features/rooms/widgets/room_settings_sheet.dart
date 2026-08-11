@@ -94,7 +94,7 @@ class _RoomSettingsSheetState extends State<RoomSettingsSheet> {
 
     return Watch((context) {
       // 监听所有显示状态
-      final userListSimple = ServiceManager().displayState.userListSimple.watch(
+      final userListStyle = ServiceManager().displayState.userListStyle.watch(
         context,
       );
       final displayMode = ServiceManager().displayState.displayMode.watch(
@@ -151,12 +151,33 @@ class _RoomSettingsSheetState extends State<RoomSettingsSheet> {
               children: [
                 // 显示模式
                 _buildSettingSection('显示模式', [
-                  _buildOptionButton('简约', userListSimple, () {
-                    ServiceManager().appSettings.setUserListSimple(true);
-                  }),
-                  _buildOptionButton('详细', !userListSimple, () {
-                    ServiceManager().appSettings.setUserListSimple(false);
-                  }),
+                  _buildOptionButton(
+                    '简约',
+                    userListStyle == UserListStyle.simple,
+                    () {
+                      ServiceManager().appSettings.setUserListStyle(
+                        UserListStyle.simple,
+                      );
+                    },
+                  ),
+                  _buildOptionButton(
+                    '详细',
+                    userListStyle == UserListStyle.detailed,
+                    () {
+                      ServiceManager().appSettings.setUserListStyle(
+                        UserListStyle.detailed,
+                      );
+                    },
+                  ),
+                  _buildOptionButton(
+                    '列表',
+                    userListStyle == UserListStyle.list,
+                    () {
+                      ServiceManager().appSettings.setUserListStyle(
+                        UserListStyle.list,
+                      );
+                    },
+                  ),
                 ], colorScheme),
 
                 // 用户显示

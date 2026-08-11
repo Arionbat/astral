@@ -19,8 +19,11 @@ class AllSettings {
   /// 自定义vpn网段
   List<String> customVpn = [];
 
-  ///用户列表简约模式
+  ///用户列表简约模式（兼容旧版；新逻辑优先读 userListStyle）
   bool userListSimple = true;
+
+  /// 用户列表样式（0 简约 / 1 详细 / 2 列表；-1 表示未迁移）
+  int userListStyle = -1;
 
   /// 关闭最小化到托盘
   bool closeMinimize = true;

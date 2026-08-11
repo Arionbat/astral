@@ -5,6 +5,7 @@ import 'package:astral/src/rust/api/simple.dart';
 import 'package:astral/shared/utils/network/node_utils.dart';
 import 'package:astral/features/rooms/widgets/all_user_card.dart';
 import 'package:astral/features/rooms/widgets/mini_user_card.dart';
+import 'package:astral/features/rooms/widgets/list_user_card.dart';
 import 'package:astral/features/rooms/widgets/network_topology.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
@@ -135,7 +136,7 @@ class _UserPageState extends State<UserPage> {
           final displayMode = ServiceManager().displayState.displayMode.watch(
             context,
           );
-          final userListSimple = ServiceManager().displayState.userListSimple
+          final userListStyle = ServiceManager().displayState.userListStyle
               .watch(context);
           final localIPv4 = ServiceManager().networkConfigState.ipv4.watch(
             context,
@@ -174,43 +175,78 @@ class _UserPageState extends State<UserPage> {
                 nodes.where((node) => isServerNode(node)).toList();
           }
 
-          // 按内容区宽度计算列数，避免把侧栏宽度算进去导致临界多开一列
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final columnCount = _getColumnCount(constraints.maxWidth);
-              return CustomScrollView(
-                // 始终允许滚动,即使内容不足一屏
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
-                    // 对齐网格：从左到右按行排布，避免瀑布流把矮卡塞到右侧空位
-                    sliver: SliverAlignedGrid.count(
-                      crossAxisCount: columnCount,
-                      mainAxisSpacing: 8.0,
-                      crossAxisSpacing: 8.0,
-                      itemCount: filteredNodes.length,
-                      itemBuilder: (context, index) {
+          if (userListStyle == UserListStyle.list) {
+            return CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
                         final player = filteredNodes[index];
-                        return userListSimple
-                            ? MiniUserCard(
-                              key: ValueKey(player.peerId),
-                              player: player,
-                              colorScheme: colorScheme,
-                              localIPv4: localIPv4,
-                            )
-                            : AllUserCard(
-                              key: ValueKey(player.peerId),
-                              player: player,
-                              colorScheme: colorScheme,
-                              localIPv4: localIPv4,
-                            );
+                        return ListUserCard(
+                          key: ValueKey(player.peerId),
+                          player: player,
+                          colorScheme: colorScheme,
+                          localIPv4: localIPv4,
+                          showDivider: index < filteredNodes.length - 1,
+                        );
                       },
+                      childCount: filteredNodes.length,
                     ),
                   ),
-                ],
-              );
-            },
+                ),
+              ],
+            );
+          }
+
+          // 返回一个可滚动的视图
+          return CustomScrollView(
+            // 始终允许滚动,即使内容不足一屏
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              // 为网格添加内边距
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+                // 使用瀑布流网格布局
+                sliver: SliverMasonryGrid(
+                  // 配置网格布局参数
+                  gridDelegate: SliverSimpleGridDelegateWithFixedCrossAxisCount(
+                    // 根据屏幕宽度动态计算列数
+                    crossAxisCount: _getColumnCount(
+                      MediaQuery.of(context).size.width,
+                    ),
+                  ),
+                  // 设置网格项之间的间距
+                  mainAxisSpacing: 8.0,
+                  crossAxisSpacing: 8.0,
+                  // 配置子项构建器
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      // 获取当前索引对应的玩家数据
+                      final player = filteredNodes[index];
+                      // 根据列表样式返回不同的卡片组件
+                      return userListStyle == UserListStyle.simple
+                          ? MiniUserCard(
+                            key: ValueKey(player.peerId),
+                            player: player,
+                            colorScheme: colorScheme,
+                            localIPv4: localIPv4,
+                          )
+                          : AllUserCard(
+                            key: ValueKey(player.peerId),
+                            player: player,
+                            colorScheme: colorScheme,
+                            localIPv4: localIPv4,
+                          );
+                    },
+                    // 设置子项数量为过滤后的节点数量
+                    childCount: filteredNodes.length,
+                  ),
+                ),
+              ),
+            ],
           );
         }
       }),

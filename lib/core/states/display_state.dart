@@ -35,12 +35,27 @@ enum UserDisplayMode {
   }
 }
 
+/// 成员列表卡片样式（持久化为 int：0 简约 / 1 详细 / 2 列表）
+enum UserListStyle {
+  simple,
+  detailed,
+  list;
+
+  static UserListStyle fromIndex(int index) {
+    if (index < 0 || index >= values.length) return UserListStyle.simple;
+    return values[index];
+  }
+}
+
 /// 显示相关状态（排序、显示模式等）
 class DisplayState {
   final sortOption = signal(UserSortOption.none);
   final sortOrder = signal(UserSortOrder.ascending);
   final displayMode = signal(UserDisplayMode.all);
-  final userListSimple = signal(false);
+  final userListStyle = signal(UserListStyle.simple);
+
+  /// 兼容旧调用：是否为简约卡片
+  bool get userListSimple => userListStyle.value == UserListStyle.simple;
 
   void setSortOption(UserSortOption option) {
     sortOption.value = option;
@@ -54,7 +69,12 @@ class DisplayState {
     displayMode.value = mode;
   }
 
+  void setUserListStyle(UserListStyle style) {
+    userListStyle.value = style;
+  }
+
   void setUserListSimple(bool value) {
-    userListSimple.value = value;
+    userListStyle.value =
+        value ? UserListStyle.simple : UserListStyle.detailed;
   }
 }

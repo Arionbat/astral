@@ -10,6 +10,7 @@ import 'package:astral/core/states/vpn_state.dart';
 import 'package:astral/core/states/app_settings_state.dart';
 import 'package:astral/core/repositories/app_settings_repository.dart';
 import 'package:astral/core/database/dao/all_settings_dao.dart';
+import 'package:astral/core/models/all_settings.dart';
 import 'package:astral/shared/utils/github_proxy_selector.dart';
 import 'package:astral/core/platform/startup_url_scheme.dart';
 
@@ -43,7 +44,14 @@ class AppSettingsService {
     playerState.updatePlayerName(playerName);
     playerState.setListenList(listenList);
 
-    displayState.setUserListSimple(settings.userListSimple);
+    final listStyle = _resolveUserListStyle(settings);
+    displayState.setUserListStyle(listStyle);
+    if (settings.userListStyle != listStyle.index) {
+      await _repo.update((s) {
+        s.userListStyle = listStyle.index;
+        s.userListSimple = listStyle == UserListStyle.simple;
+      });
+    }
     displayState.setSortOption(UserSortOption.fromIndex(settings.sortOption));
     displayState.setSortOrder(UserSortOrder.fromIndex(settings.sortOrder));
     displayState.setDisplayMode(UserDisplayMode.fromIndex(settings.displayMode));
@@ -106,9 +114,28 @@ class AppSettingsService {
     playerState.setListenList(await _repo.getListenList());
   }
 
+  UserListStyle _resolveUserListStyle(AllSettings settings) {
+    if (settings.userListStyle >= 0 &&
+        settings.userListStyle < UserListStyle.values.length) {
+      return UserListStyle.fromIndex(settings.userListStyle);
+    }
+    return settings.userListSimple
+        ? UserListStyle.simple
+        : UserListStyle.detailed;
+  }
+
+  Future<void> setUserListStyle(UserListStyle style) async {
+    displayState.setUserListStyle(style);
+    await _repo.update((s) {
+      s.userListStyle = style.index;
+      s.userListSimple = style == UserListStyle.simple;
+    });
+  }
+
   Future<void> setUserListSimple(bool value) async {
-    displayState.setUserListSimple(value);
-    await _repo.update((s) => s.userListSimple = value);
+    await setUserListStyle(
+      value ? UserListStyle.simple : UserListStyle.detailed,
+    );
   }
 
   Future<void> setSortOption(UserSortOption option) async {

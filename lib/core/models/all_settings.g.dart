@@ -131,6 +131,11 @@ const AllSettingsSchema = CollectionSchema(
       name: r'userListSimple',
       type: IsarType.bool,
     ),
+    r'userListStyle': PropertySchema(
+      id: 26,
+      name: r'userListStyle',
+      type: IsarType.long,
+    ),
   },
 
   estimateSize: _allSettingsEstimateSize,
@@ -228,6 +233,7 @@ void _allSettingsSerialize(
   writer.writeBool(offsets[23], object.startupMinimize);
   writer.writeString(offsets[24], object.userId);
   writer.writeBool(offsets[25], object.userListSimple);
+  writer.writeLong(offsets[26], object.userListStyle);
 }
 
 AllSettings _allSettingsDeserialize(
@@ -264,6 +270,7 @@ AllSettings _allSettingsDeserialize(
   object.startupMinimize = reader.readBool(offsets[23]);
   object.userId = reader.readStringOrNull(offsets[24]);
   object.userListSimple = reader.readBool(offsets[25]);
+  object.userListStyle = reader.readLong(offsets[26]);
   return object;
 }
 
@@ -326,6 +333,8 @@ P _allSettingsDeserializeProp<P>(
       return (reader.readStringOrNull(offset)) as P;
     case 25:
       return (reader.readBool(offset)) as P;
+    case 26:
+      return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }

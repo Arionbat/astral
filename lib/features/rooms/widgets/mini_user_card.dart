@@ -75,11 +75,9 @@ class _MiniUserCardState extends State<MiniUserCard> {
           },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: SizedBox(
-              width: double.infinity,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 // 第一行：名称 类型 延迟 丢包
                 Row(
                   children: [
@@ -222,7 +220,6 @@ class _MiniUserCardState extends State<MiniUserCard> {
                   ],
                 ),
               ],
-              ),
             ),
           ),
         ),
