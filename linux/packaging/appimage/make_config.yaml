@@ -1,0 +1,43 @@
+display_name: Astral
+
+icon: assets/logo.png
+
+keywords:
+  - Astral
+  - Network
+  - Firewall
+  - WFP
+  - Security
+  - Traffic
+  - Filter
+
+generic_name: Network Traffic Manager
+
+actions:
+  - name: Start Monitor
+    label: start-monitor
+    arguments:
+      - --monitor
+      - start
+  - name: Configure Rules
+    label: configure-rules
+    arguments:
+      - --config
+      - rules
+
+categories:
+  - Network
+  - System
+  - Security
+
+startup_notify: true
+
+# 您可以指定要与您的应用捆绑的共享库
+#
+# fastforge 会自动检测您的应用所依赖的共享库，但您也可以在此处手动指定它们。
+#
+# 以下示例展示了如何将 libcurl 库与您的应用捆绑在一起
+#
+# include:
+#   - libcurl.so.4
+include: []
